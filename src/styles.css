@@ -1,0 +1,12 @@
+body {
+    margin: 0;
+    background-color: #111;
+    font-family: sans-serif;
+}
+
+canvas {
+    display: block;
+    margin: 40px auto;
+    background-color: #222;
+    border: 2px solid #555;
+}
