@@ -18,7 +18,6 @@ export function idx(fog, x, y) {
     return y * fog.width + x;
 }
 
-// TODO: Implement directional fog of war
 export function drawFog(ctx, fog) {
     for (let y = 0; y < fog.height; y++) {
         for (let x = 0; x < fog.width; x++) {

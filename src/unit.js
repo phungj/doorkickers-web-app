@@ -23,7 +23,8 @@ const ActionType = {
 //     wait?: number
 // };
 
-export function createUnit(x, y) {
+// tODO: Add a starting dir here to args
+export function createUnit(x, y, type, brain) {
     return {
         x,
         y,
@@ -32,11 +33,13 @@ export function createUnit(x, y) {
         visionRange: 100,
         rawPath: [],
         waypoints: [],
-        targetIndex: 0
+        targetIndex: 0,
+        type: type,
+        brain: brain
     };
 }
 
-export function updateUnit(unit) {
+export function updateUnit(unit, world) {
     if (!hasActiveWaypoint(unit)) return;
 
     const wp = getCurrentWaypoint(unit);
@@ -50,25 +53,18 @@ export function updateUnit(unit) {
 }
 
 export function drawUnit(ctx, unit) {
-    ctx.fillStyle = "cyan";
+    if (unit.type === "enemy") {
+        ctx.fillStyle = "red";
+    } else {
+        ctx.fillStyle = "cyan";
+    }
+
     ctx.fillRect(
         unit.x - unit.size / 2,
         unit.y - unit.size / 2,
         unit.size,
         unit.size
     );
-
-    const target = unit.waypoints?.[unit.targetIndex];
-    if (target) {
-        const dx = target.x - unit.x;
-        const dy = target.y - unit.y;
-        const len = Math.hypot(dx, dy);
-
-        if (len > 0.0001) {
-            unit.dir.x = dx / len;
-            unit.dir.y = dy / len;
-        }
-    }
 
     if (unit.rawPath && unit.rawPath.length > 1) {
         ctx.strokeStyle = "rgba(255, 255, 0, 0.3)";
@@ -257,17 +253,26 @@ function stepTowardWaypoint(unit, wp) {
     const dist = Math.hypot(dx, dy);
     const speed = 2;
 
-    if (dist < speed) {
+    if (dist <= 0.0001) {
         unit.x = wp.x;
         unit.y = wp.y;
         return true;
     }
 
-    const nextX = unit.x + (dx / dist) * speed;
-    const nextY = unit.y + (dy / dist) * speed;
+    const nx = dx / dist;
+    const ny = dy / dist;
 
-    unit.x = nextX;
-    unit.y = nextY;
+    unit.dir.x = nx;
+    unit.dir.y = ny;
+
+    if (dist <= speed) {
+        unit.x = wp.x;
+        unit.y = wp.y;
+        return true;
+    }
+
+    unit.x += nx * speed;
+    unit.y += ny * speed;
 
     return false;
 }

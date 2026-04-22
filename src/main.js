@@ -3,37 +3,71 @@ import { drawMap, map } from "./map.js";
 import { createUnit, updateUnit, drawUnit, revealFromUnit } from "./unit.js";
 import { setupInput } from "./input.js";
 import {createFog, drawFog} from "./fog.js";
+import {enemyBrain, playerBrain} from "./brains.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const unit = createUnit(100, 50);
-
-const fog = createFog(map[0].length, map.length);
-
-setupInput(canvas, unit);
-
-function update() {
-    updateUnit(unit);
-
-    revealFromUnit(unit, fog);
+const world = {
+    map,
+    fog: createFog(map[0].length, map.length),
+    units: []
 }
 
-function draw() {
+const player = createUnit(100, 50, "player", playerBrain);
+const enemy = createUnit(300, 50, "enemy", enemyBrain);
+
+world.units.push(player);
+world.units.push(enemy);
+
+
+// TODO: Implement a canSee function to ensure you and your enemies can only see what they see in a direction in front of them
+// TODO: Hide enemies in the fog
+// TODO: Also hide their paths
+
+// TODO: Prevent pathing through doors and walls
+// TODO: Implementing contextual actions
+// TODO: Implementing floating actions
+// TODO: Shooting
+// TODO: Edge of fog interactions like enemy silhouettes
+// TODO: Raytracing door opening?
+// TODO: Noise
+// TODO: Enemy state machine
+setupInput(canvas, world);
+
+function updateWorld(world) {
+    for (const unit of world.units) {
+        unit.brain?.(unit, world);
+    }
+
+    for (const unit of world.units) {
+        updateUnit(unit, world);
+    }
+
+    for (const unit of world.units.filter(u => u.type === "player")) {
+        revealFromUnit(unit, world.fog);
+    }
+}
+
+function drawWorld(ctx, world) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     drawMap(ctx);
-    drawUnit(ctx, unit);
-    drawFog(ctx, fog);
+
+    for (const unit of world.units) {
+        drawUnit(ctx, unit);
+    }
+
+    drawFog(ctx, world.fog);
 }
 
 function loop() {
     if (!sim.paused || sim.stepOnce) {
-        update();
+        updateWorld(world);
         sim.stepOnce = false;
     }
 
-    draw();
+    drawWorld(ctx, world);
     requestAnimationFrame(loop);
 }
 

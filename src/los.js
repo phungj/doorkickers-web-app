@@ -1,4 +1,4 @@
-import { TILE_SIZE, Tile, getTileAt } from "./map.js";
+import { Tile, getTileAt } from "./map.js";
 
 export function hasLineOfSight(x0, y0, x1, y1) {
     const dx = x1 - x0;
