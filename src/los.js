@@ -17,7 +17,7 @@ export function hasLineOfSight(x0, y0, x1, y1) {
 
         const tile = getTileAt(x, y);
 
-        if (tile === Tile.WALL) {
+        if (tile === Tile.WALL || tile === Tile.DOOR_CLOSED) {
             return false;
         }
 

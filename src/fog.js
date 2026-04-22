@@ -18,6 +18,7 @@ export function idx(fog, x, y) {
     return y * fog.width + x;
 }
 
+// TODO: Implement directional fog of war
 export function drawFog(ctx, fog) {
     for (let y = 0; y < fog.height; y++) {
         for (let x = 0; x < fog.width; x++) {
@@ -26,9 +27,9 @@ export function drawFog(ctx, fog) {
             if (state === FOG.VISIBLE) continue;
 
             if (state === FOG.SEEN) {
-                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillStyle = "rgba(0,0,0,0.3)";
             } else {
-                ctx.fillStyle = "rgba(0,0,0,0.9)";
+                ctx.fillStyle = "rgba(0,0,0,0.4)";
             }
 
             ctx.fillRect(

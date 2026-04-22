@@ -1,5 +1,3 @@
-import { FOG, idx } from "./fog.js";
-
 export const TILE_SIZE = 40;
 
 export const Tile = {
@@ -36,7 +34,7 @@ export function openDoorAt(x, y) {
     }
 }
 
-export function drawMap(ctx, fog) {
+export function drawMap(ctx) {
     for (let y = 0; y < map.length; y++) {
         for (let x = 0; x < map[y].length; x++) {
             const tile = map[y][x];

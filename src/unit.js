@@ -27,6 +27,7 @@ export function createUnit(x, y) {
     return {
         x,
         y,
+        dir: {x: 1, y: 0},
         size: 15,
         visionRange: 100,
         rawPath: [],
@@ -56,6 +57,18 @@ export function drawUnit(ctx, unit) {
         unit.size,
         unit.size
     );
+
+    const target = unit.waypoints?.[unit.targetIndex];
+    if (target) {
+        const dx = target.x - unit.x;
+        const dy = target.y - unit.y;
+        const len = Math.hypot(dx, dy);
+
+        if (len > 0.0001) {
+            unit.dir.x = dx / len;
+            unit.dir.y = dy / len;
+        }
+    }
 
     if (unit.rawPath && unit.rawPath.length > 1) {
         ctx.strokeStyle = "rgba(255, 255, 0, 0.3)";
@@ -96,6 +109,17 @@ export function drawUnit(ctx, unit) {
             ctx.fill();
         }
     }
+
+    const facingLength = 10;
+
+    ctx.strokeStyle = "cyan";
+    ctx.beginPath();
+    ctx.moveTo(unit.x, unit.y);
+    ctx.lineTo(
+        unit.x + unit.dir.x * facingLength,
+        unit.y + unit.dir.y * facingLength
+    );
+    ctx.stroke();
 }
 
 export function simplifyPath(points) {
@@ -135,6 +159,25 @@ export function revealFromUnit(unit, fog) {
 
             const worldX = x * TILE_SIZE + TILE_SIZE / 2;
             const worldY = y * TILE_SIZE + TILE_SIZE / 2;
+
+            const dx = worldX - unit.x;
+            const dy = worldY - unit.y;
+
+            const dist = Math.hypot(dx, dy);
+            if (dist === 0) continue;
+
+            if (dist > unit.visionRange) continue;
+
+            const ndx = dx / dist;
+            const ndy = dy / dist;
+
+            // TODO: Tune this
+            const FOV_ANGLE = Math.PI / 3;
+            const cosHalfAngle = Math.cos(FOV_ANGLE / 2);
+
+
+            const dot = ndx * unit.dir.x + ndy * unit.dir.y;
+            if (dot < cosHalfAngle) continue;
 
             if (!withinVision(unit, worldX, worldY)) continue;
 
