@@ -1,16 +1,22 @@
-import { drawMap } from "./map.js";
-import { createUnit, updateUnit, drawUnit } from "./unit.js";
+import { sim } from "./sim.js";
+import { drawMap, map } from "./map.js";
+import { createUnit, updateUnit, drawUnit, revealFromUnit } from "./unit.js";
 import { setupInput } from "./input.js";
+import {createFog, drawFog} from "./fog.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 const unit = createUnit(100, 50);
 
+const fog = createFog(map[0].length, map.length);
+
 setupInput(canvas, unit);
 
 function update() {
     updateUnit(unit);
+
+    revealFromUnit(unit, fog);
 }
 
 function draw() {
@@ -18,10 +24,15 @@ function draw() {
 
     drawMap(ctx);
     drawUnit(ctx, unit);
+    drawFog(ctx, fog);
 }
 
 function loop() {
-    update();
+    if (!sim.paused || sim.stepOnce) {
+        update();
+        sim.stepOnce = false;
+    }
+
     draw();
     requestAnimationFrame(loop);
 }

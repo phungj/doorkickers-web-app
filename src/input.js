@@ -1,3 +1,6 @@
+import {simplifyPath} from "./unit.js";
+import {sim, stepSimulation} from "./sim.js";
+
 export function setupInput(canvas, unit) {
     let dragging = false;
 
@@ -13,7 +16,8 @@ export function setupInput(canvas, unit) {
             my < unit.y + unit.size
         ) {
             dragging = true;
-            unit.path = [];
+            unit.rawPath = [];
+            unit.waypoints = [];
             unit.targetIndex = 0;
         }
     });
@@ -25,10 +29,23 @@ export function setupInput(canvas, unit) {
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        unit.path.push({ x: mx, y: my });
+        // TODO: Refactor this to prevent invalid paths from being drawn
+        unit.rawPath.push({ x: mx, y: my });
     });
 
     canvas.addEventListener("mouseup", () => {
         dragging = false;
+
+        unit.waypoints = simplifyPath(unit.rawPath);
+    });
+
+    window.addEventListener("keydown", (e) => {
+        if (e.code === "Space") {
+            sim.paused = !sim.paused;
+        }
+
+        if (e.code === "KeyS") {
+            stepSimulation();
+        }
     });
 }

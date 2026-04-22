@@ -1,3 +1,5 @@
+import { FOG, idx } from "./fog.js";
+
 export const TILE_SIZE = 40;
 
 export const Tile = {
@@ -16,21 +18,25 @@ export const map = [
     [1,1,1,1,1,1,1,1,1,1],
 ];
 
+
+
 export function getTileAt(x, y) {
     const tx = Math.floor(x / TILE_SIZE);
     const ty = Math.floor(y / TILE_SIZE);
+
     return map[ty]?.[tx];
 }
 
 export function openDoorAt(x, y) {
     const tx = Math.floor(x / TILE_SIZE);
     const ty = Math.floor(y / TILE_SIZE);
+
     if (map[ty][tx] === Tile.DOOR_CLOSED) {
         map[ty][tx] = Tile.DOOR_OPEN;
     }
 }
 
-export function drawMap(ctx) {
+export function drawMap(ctx, fog) {
     for (let y = 0; y < map.length; y++) {
         for (let x = 0; x < map[y].length; x++) {
             const tile = map[y][x];

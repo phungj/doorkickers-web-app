@@ -1,45 +1,51 @@
-import { getTileAt, openDoorAt, Tile } from "./map.js";
+import { getTileAt, openDoorAt, Tile, TILE_SIZE } from "./map.js";
+import { FOG, idx } from "./fog.js";
+import { hasLineOfSight } from "./los.js";
+
+const ActionType = {
+    MOVE: "move",
+    OPEN_DOOR: "openDoor"
+}
+
+// type Waypoint = {
+//     x: number,
+//     y: number,
+//
+//     // movement happens here
+//     move: true,
+//
+//     // optional behavior
+//     action?: {
+//         type: string,
+//         target?: { x, y }
+//     },
+//
+//     wait?: number
+// };
 
 export function createUnit(x, y) {
     return {
         x,
         y,
         size: 15,
-        path: [],
+        visionRange: 100,
+        rawPath: [],
+        waypoints: [],
         targetIndex: 0
     };
 }
 
 export function updateUnit(unit) {
-    if (unit.path.length === 0 || unit.targetIndex >= unit.path.length) return;
+    if (!hasActiveWaypoint(unit)) return;
 
-    const target = unit.path[unit.targetIndex];
-    const dx = target.x - unit.x;
-    const dy = target.y - unit.y;
+    const wp = getCurrentWaypoint(unit);
 
-    const dist = Math.hypot(dx, dy);
-    const speed = 2;
+    const arrived = stepTowardWaypoint(unit, wp);
 
-    if (dist < speed) {
-        unit.x = target.x;
-        unit.y = target.y;
-        unit.targetIndex++;
-        return;
-    }
+    if (!arrived) return;
 
-    const nextX = unit.x + (dx / dist) * speed;
-    const nextY = unit.y + (dy / dist) * speed;
-
-    const tile = getTileAt(nextX, nextY);
-
-    if (tile === Tile.WALL) return;
-
-    if (tile === Tile.DOOR_CLOSED) {
-        openDoorAt(nextX, nextY);
-    }
-
-    unit.x = nextX;
-    unit.y = nextY;
+    handleWaypointArrival(unit, wp);
+    advanceWaypoint(unit);
 }
 
 export function drawUnit(ctx, unit) {
@@ -51,15 +57,198 @@ export function drawUnit(ctx, unit) {
         unit.size
     );
 
-    // draw path
-    ctx.strokeStyle = "yellow";
-    ctx.beginPath();
+    if (unit.rawPath && unit.rawPath.length > 1) {
+        ctx.strokeStyle = "rgba(255, 255, 0, 0.3)";
+        ctx.beginPath();
 
-    for (let i = unit.targetIndex; i < unit.path.length; i++) {
-        const p = unit.path[i];
-        if (i === unit.targetIndex) ctx.moveTo(unit.x, unit.y);
-        else ctx.lineTo(p.x, p.y);
+        ctx.moveTo(unit.rawPath[0].x, unit.rawPath[0].y);
+
+        for (let i = 1; i < unit.rawPath.length; i++) {
+            const p = unit.rawPath[i];
+            ctx.lineTo(p.x, p.y);
+        }
+
+        ctx.stroke();
     }
 
-    ctx.stroke();
+    if (unit.waypoints && unit.waypoints.length > 0) {
+        // Path line
+        ctx.strokeStyle = "yellow";
+        ctx.beginPath();
+
+        ctx.moveTo(unit.x, unit.y);
+
+        for (let i = unit.targetIndex; i < unit.waypoints.length; i++) {
+            const p = unit.waypoints[i];
+            ctx.lineTo(p.x, p.y);
+        }
+
+        ctx.stroke();
+
+        for (let i = 0; i < unit.waypoints.length; i++) {
+            const p = unit.waypoints[i];
+
+            // Current target = red, others = white
+            ctx.fillStyle = (i === unit.targetIndex) ? "red" : "white";
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}
+
+export function simplifyPath(points) {
+    if (points.length === 0) return [];
+
+    const waypoints = [];
+    let last = points[0];
+    waypoints.push({ x: last.x, y: last.y });
+
+    for (let i = 1; i < points.length; i++) {
+        const p = points[i];
+        const dx = p.x - last.x;
+        const dy = p.y - last.y;
+
+        if (Math.hypot(dx, dy) > 20 && isLineWalkable(last.x, last.y, p.x, p.y)) {
+            waypoints.push({ x: p.x, y: p.y });
+            last = p;
+        }
+    }
+
+    annotateWaypoints(waypoints);
+
+    return waypoints;
+}
+
+export function revealFromUnit(unit, fog) {
+    const radius = Math.ceil(unit.visionRange / TILE_SIZE);
+
+    const cx = Math.floor(unit.x / TILE_SIZE);
+    const cy = Math.floor(unit.y / TILE_SIZE);
+
+    fadeFog(fog);
+
+    for (let y = cy - radius; y <= cy + radius; y++) {
+        for (let x = cx - radius; x <= cx + radius; x++) {
+            if (!inBounds(fog, x, y)) continue;
+
+            const worldX = x * TILE_SIZE + TILE_SIZE / 2;
+            const worldY = y * TILE_SIZE + TILE_SIZE / 2;
+
+            if (!withinVision(unit, worldX, worldY)) continue;
+
+            if (!hasLineOfSight(unit.x, unit.y, worldX, worldY)) continue;
+
+            fog.cells[idx(fog, x, y)] = FOG.VISIBLE;
+        }
+    }
+}
+
+function annotateWaypoints(waypoints) {
+    for (let i = 0; i < waypoints.length; i++) {
+        const wp = waypoints[i];
+
+        const tile = getTileAt(wp.x, wp.y);
+
+        if (tile === Tile.DOOR_CLOSED) {
+            wp.action = { type: "openDoor" };
+        }
+    }
+}
+
+function isLineWalkable(x0, y0, x1, y1) {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+
+    const steps = Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 4);
+
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const x = x0 + dx * t;
+        const y = y0 + dy * t;
+
+        const tile = getTileAt(x, y);
+
+        if (tile === Tile.WALL) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function handleAction(unit, action) {
+    switch (action.type) {
+        case "openDoor":
+            executeOpenDoor(unit);
+            break;
+    }
+}
+
+function hasActiveWaypoint(unit) {
+    return (
+        unit.waypoints.length > 0 &&
+        unit.targetIndex < unit.waypoints.length
+    );
+}
+
+function getCurrentWaypoint(unit) {
+    return unit.waypoints[unit.targetIndex];
+}
+
+function advanceWaypoint(unit) {
+    unit.targetIndex++;
+}
+
+function handleWaypointArrival(unit, wp) {
+    if (wp.action) {
+        handleAction(unit, wp.action);
+    }
+}
+
+function stepTowardWaypoint(unit, wp) {
+    const dx = wp.x - unit.x;
+    const dy = wp.y - unit.y;
+
+    const dist = Math.hypot(dx, dy);
+    const speed = 2;
+
+    if (dist < speed) {
+        unit.x = wp.x;
+        unit.y = wp.y;
+        return true;
+    }
+
+    const nextX = unit.x + (dx / dist) * speed;
+    const nextY = unit.y + (dy / dist) * speed;
+
+    unit.x = nextX;
+    unit.y = nextY;
+
+    return false;
+}
+
+// TODO: Add a delay to doing this
+function executeOpenDoor(unit) {
+    openDoorAt(unit.x, unit.y);
+}
+
+function fadeFog(fog) {
+    for (let i = 0; i < fog.cells.length; i++) {
+        if (fog.cells[i] === FOG.VISIBLE) {
+            fog.cells[i] = FOG.SEEN;
+        }
+    }
+}
+
+function inBounds(fog, x, y) {
+    return x >= 0 && y >= 0 && x < fog.width && y < fog.height;
+}
+
+function withinVision(unit, worldX, worldY) {
+    const dx = worldX - unit.x;
+    const dy = worldY - unit.y;
+
+    return Math.hypot(dx, dy) <= unit.visionRange;
 }
