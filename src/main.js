@@ -1,8 +1,8 @@
 import { sim } from "./sim.js";
-import { drawMap, map } from "./map.js";
+import {drawMap, map} from "./map.js";
 import { createUnit, updateUnit, drawUnit, revealFromUnit } from "./unit.js";
 import { setupInput } from "./input.js";
-import {createFog, drawFog} from "./fog.js";
+import {createFog, drawFog, FOG, getFogState, isVisibleToPlayer} from "./fog.js";
 import {enemyBrain, playerBrain} from "./brains.js";
 
 const canvas = document.getElementById("game");
@@ -14,25 +14,25 @@ const world = {
     units: []
 }
 
-const player = createUnit(100, 50, "player", playerBrain);
-const enemy = createUnit(300, 50, "enemy", enemyBrain);
+const player = createUnit({x: 100, y: 50, dir: {x: 1, y: 0}, type: "player", brain: playerBrain});
+const enemy = createUnit({x: 300, y: 50, dir: {x: -1, y: 0}, type: "enemy", brain: enemyBrain});
 
 world.units.push(player);
 world.units.push(enemy);
 
 
-// TODO: Implement a canSee function to ensure you and your enemies can only see what they see in a direction in front of them
-// TODO: Hide enemies in the fog
-// TODO: Also hide their paths
-
-// TODO: Prevent pathing through doors and walls
-// TODO: Implementing contextual actions
-// TODO: Implementing floating actions
+// TODO: Prevent enemy pathing through doors and walls
+// TODO: Implementing contextual actions (e.g. opening a door nearby)
+// TODO: Implementing floating actions (e.g. throwing a flashbang from anywhere)
 // TODO: Shooting
 // TODO: Edge of fog interactions like enemy silhouettes
 // TODO: Raytracing door opening?
 // TODO: Noise
 // TODO: Enemy state machine
+// TODO: Handle clipping of enemies when together
+// TODO: Adjusting facing using right click
+// TODO: Pie slicing with shift right click
+// TODO: Strafing with control right click
 setupInput(canvas, world);
 
 function updateWorld(world) {
@@ -55,6 +55,18 @@ function drawWorld(ctx, world) {
     drawMap(ctx);
 
     for (const unit of world.units) {
+        if (unit.type === "enemy") {
+            const state = getFogState(unit, world.fog);
+
+            if (state === FOG.VISIBLE) {
+                drawUnit(ctx, unit);
+            } else if (state === FOG.SEEN) {
+                // TODO: drawSilhouette(ctx, unit); // future
+            }
+
+            continue;
+        }
+
         drawUnit(ctx, unit);
     }
 
@@ -70,5 +82,6 @@ function loop() {
     drawWorld(ctx, world);
     requestAnimationFrame(loop);
 }
+
 
 loop();

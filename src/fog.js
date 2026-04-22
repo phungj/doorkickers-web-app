@@ -40,3 +40,25 @@ export function drawFog(ctx, fog) {
         }
     }
 }
+
+export function isVisibleToPlayer(unit, fog) {
+    const tx = Math.floor(unit.x / TILE_SIZE);
+    const ty = Math.floor(unit.y / TILE_SIZE);
+
+    if (tx < 0 || ty < 0 || tx >= fog.width || ty >= fog.height) {
+        return false;
+    }
+
+    return fog.cells[idx(fog, tx, ty)] === FOG.VISIBLE;
+}
+
+export function getFogState(unit, fog) {
+    const tx = Math.floor(unit.x / TILE_SIZE);
+    const ty = Math.floor(unit.y / TILE_SIZE);
+
+    if (tx < 0 || ty < 0 || tx >= fog.width || ty >= fog.height) {
+        return FOG.UNSEEN;
+    }
+
+    return fog.cells[idx(fog, tx, ty)];
+}

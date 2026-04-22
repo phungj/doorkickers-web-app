@@ -1,10 +1,16 @@
 import { getTileAt, openDoorAt, Tile, TILE_SIZE } from "./map.js";
 import { FOG, idx } from "./fog.js";
-import { hasLineOfSight } from "./los.js";
+import {canSee} from "./los.js";
 
 const ActionType = {
     MOVE: "move",
     OPEN_DOOR: "openDoor"
+}
+
+const States = {
+    IDLE: "idle",
+    CHASE: "chase",
+    SEARCH: "search"
 }
 
 // type Waypoint = {
@@ -23,19 +29,35 @@ const ActionType = {
 //     wait?: number
 // };
 
-// tODO: Add a starting dir here to args
-export function createUnit(x, y, type, brain) {
+// TODO: Tune vision range (possibly just make infinite?)
+export function createUnit({
+                               x,
+                               y,
+                               dir,
+                               type,
+                               brain
+                           }) {
+    const len = Math.hypot(dir.x, dir.y);
+
+    const finalDir = (len > 0)
+        ? { x: dir.x / len, y: dir.y / len }
+        : { x: 1, y: 0 };
+
     return {
         x,
         y,
-        dir: {x: 1, y: 0},
+        dir: finalDir,
         size: 15,
         visionRange: 100,
+        speed: 2,
         rawPath: [],
         waypoints: [],
         targetIndex: 0,
-        type: type,
-        brain: brain
+        type,
+        brain,
+        state: States.IDLE,
+        lastSeen: null,
+        stateTimer: 0
     };
 }
 
@@ -66,56 +88,58 @@ export function drawUnit(ctx, unit) {
         unit.size
     );
 
-    if (unit.rawPath && unit.rawPath.length > 1) {
-        ctx.strokeStyle = "rgba(255, 255, 0, 0.3)";
-        ctx.beginPath();
-
-        ctx.moveTo(unit.rawPath[0].x, unit.rawPath[0].y);
-
-        for (let i = 1; i < unit.rawPath.length; i++) {
-            const p = unit.rawPath[i];
-            ctx.lineTo(p.x, p.y);
-        }
-
-        ctx.stroke();
-    }
-
-    if (unit.waypoints && unit.waypoints.length > 0) {
-        // Path line
-        ctx.strokeStyle = "yellow";
-        ctx.beginPath();
-
-        ctx.moveTo(unit.x, unit.y);
-
-        for (let i = unit.targetIndex; i < unit.waypoints.length; i++) {
-            const p = unit.waypoints[i];
-            ctx.lineTo(p.x, p.y);
-        }
-
-        ctx.stroke();
-
-        for (let i = 0; i < unit.waypoints.length; i++) {
-            const p = unit.waypoints[i];
-
-            // Current target = red, others = white
-            ctx.fillStyle = (i === unit.targetIndex) ? "red" : "white";
-
+    if (unit.type === "player") {
+        if (unit.rawPath && unit.rawPath.length > 1) {
+            ctx.strokeStyle = "rgba(255, 255, 0, 0.3)";
             ctx.beginPath();
-            ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-            ctx.fill();
+
+            ctx.moveTo(unit.rawPath[0].x, unit.rawPath[0].y);
+
+            for (let i = 1; i < unit.rawPath.length; i++) {
+                const p = unit.rawPath[i];
+                ctx.lineTo(p.x, p.y);
+            }
+
+            ctx.stroke();
         }
+
+        if (unit.waypoints && unit.waypoints.length > 0) {
+            // Path line
+            ctx.strokeStyle = "yellow";
+            ctx.beginPath();
+
+            ctx.moveTo(unit.x, unit.y);
+
+            for (let i = unit.targetIndex; i < unit.waypoints.length; i++) {
+                const p = unit.waypoints[i];
+                ctx.lineTo(p.x, p.y);
+            }
+
+            ctx.stroke();
+
+            for (let i = 0; i < unit.waypoints.length; i++) {
+                const p = unit.waypoints[i];
+
+                // Current target = red, others = white
+                ctx.fillStyle = (i === unit.targetIndex) ? "red" : "white";
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        const facingLength = 10;
+
+        ctx.strokeStyle = "cyan";
+        ctx.beginPath();
+        ctx.moveTo(unit.x, unit.y);
+        ctx.lineTo(
+            unit.x + unit.dir.x * facingLength,
+            unit.y + unit.dir.y * facingLength
+        );
+        ctx.stroke();
     }
-
-    const facingLength = 10;
-
-    ctx.strokeStyle = "cyan";
-    ctx.beginPath();
-    ctx.moveTo(unit.x, unit.y);
-    ctx.lineTo(
-        unit.x + unit.dir.x * facingLength,
-        unit.y + unit.dir.y * facingLength
-    );
-    ctx.stroke();
 }
 
 export function simplifyPath(points) {
@@ -156,32 +180,13 @@ export function revealFromUnit(unit, fog) {
             const worldX = x * TILE_SIZE + TILE_SIZE / 2;
             const worldY = y * TILE_SIZE + TILE_SIZE / 2;
 
-            const dx = worldX - unit.x;
-            const dy = worldY - unit.y;
-
-            const dist = Math.hypot(dx, dy);
-            if (dist === 0) continue;
-
-            if (dist > unit.visionRange) continue;
-
-            const ndx = dx / dist;
-            const ndy = dy / dist;
-
-            // TODO: Tune this
-            const FOV_ANGLE = Math.PI / 3;
-            const cosHalfAngle = Math.cos(FOV_ANGLE / 2);
-
-
-            const dot = ndx * unit.dir.x + ndy * unit.dir.y;
-            if (dot < cosHalfAngle) continue;
-
-            if (!withinVision(unit, worldX, worldY)) continue;
-
-            if (!hasLineOfSight(unit.x, unit.y, worldX, worldY)) continue;
+            if (!canSee(unit, worldX, worldY)) continue;
 
             fog.cells[idx(fog, x, y)] = FOG.VISIBLE;
         }
     }
+
+    fog.cells[idx(fog, cx, cy)] = FOG.VISIBLE;
 }
 
 function annotateWaypoints(waypoints) {
@@ -251,7 +256,6 @@ function stepTowardWaypoint(unit, wp) {
     const dy = wp.y - unit.y;
 
     const dist = Math.hypot(dx, dy);
-    const speed = 2;
 
     if (dist <= 0.0001) {
         unit.x = wp.x;
@@ -265,14 +269,14 @@ function stepTowardWaypoint(unit, wp) {
     unit.dir.x = nx;
     unit.dir.y = ny;
 
-    if (dist <= speed) {
+    if (dist <= unit.speed) {
         unit.x = wp.x;
         unit.y = wp.y;
         return true;
     }
 
-    unit.x += nx * speed;
-    unit.y += ny * speed;
+    unit.x += nx * unit.speed;
+    unit.y += ny * unit.speed;
 
     return false;
 }
@@ -292,11 +296,4 @@ function fadeFog(fog) {
 
 function inBounds(fog, x, y) {
     return x >= 0 && y >= 0 && x < fog.width && y < fog.height;
-}
-
-function withinVision(unit, worldX, worldY) {
-    const dx = worldX - unit.x;
-    const dy = worldY - unit.y;
-
-    return Math.hypot(dx, dy) <= unit.visionRange;
 }
