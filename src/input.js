@@ -1,6 +1,5 @@
-import {getNearbyInteractables, simplifyPath} from "./unit.js";
+import {getGlobalActions, getNearbyInteractables, simplifyPath, throwFlashbang} from "./unit.js";
 import {sim, stepSimulation} from "./sim.js";
-import {openDoorAt, TILE_SIZE} from "./map.js";
 
 export function setupInput(canvas, world) {
     let selectedUnit = null;
@@ -11,39 +10,36 @@ export function setupInput(canvas, world) {
 
         const { x, y } = getMousePos(e);
 
-        if (world.ui.contextMenu) {
-            const menu = world.ui.contextMenu;
+        if (selectedUnit?.pendingAction) {
+            selectedUnit.pendingAction.target = { x, y };
 
+            return;
+        }
+
+        const menu = world.ui.contextMenu;
+
+        if (menu) {
             const padding = 10;
             const itemHeight = 22;
-            const groupSpacing = 6;
             const width = 160;
-
-            let yCursor = menu.y;
 
             let clicked = null;
 
-            for (const group of menu.options) {
-                yCursor += groupSpacing;
+            for (let i = 0; i < menu.options.length; i++) {
+                const opt = menu.options[i];
 
-                for (const opt of group) {
-                    const ox = menu.x;
-                    const oy = yCursor;
+                const ox = menu.x;
+                const oy = menu.y + i * itemHeight;
 
-                    if (
-                        x >= ox &&
-                        x <= ox + width &&
-                        y >= oy &&
-                        y <= oy + itemHeight
-                    ) {
-                        clicked = opt;
-                        break;
-                    }
-
-                    yCursor += itemHeight;
+                if (
+                    x >= ox &&
+                    x <= ox + width &&
+                    y >= oy &&
+                    y <= oy + itemHeight
+                ) {
+                    clicked = opt;
+                    break;
                 }
-
-                if (clicked) break;
             }
 
             if (clicked?.fn) {
@@ -93,14 +89,12 @@ export function setupInput(canvas, world) {
         }
 
         const interactables = getNearbyInteractables(selectedUnit, world);
+        const globalActions = getGlobalActions(selectedUnit, world);
 
-        const actions = [];
-
-        for (const interactable of interactables) {
-            for (const a of interactable.actions) {
-                actions.push(a);
-            }
-        }
+        const actions = [
+            ...interactables.flatMap(i => i.actions),
+            ...globalActions
+        ];
 
         if (actions.length > 0) {
             openContextMenu(world, actions, x, y);
@@ -151,6 +145,17 @@ export function setupInput(canvas, world) {
             unit.targetIndex = 0;
         } else {
             selectedUnit = null;
+        }
+    }
+
+    function executePendingAction(world, unit) {
+        const action = unit.pendingAction;
+        if (!action || !action.target) return;
+
+        switch (action.type) {
+            case "flashbang":
+                throwFlashbang(world, action.origin, action.target);
+                break;
         }
     }
 }

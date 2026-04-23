@@ -1,6 +1,6 @@
 import { sim } from "./sim.js";
 import {drawMap, map} from "./map.js";
-import { createUnit, updateUnit, drawUnit, revealFromUnit } from "./unit.js";
+import {createUnit, updateUnit, drawUnit, revealFromUnit, throwFlashbang} from "./unit.js";
 import { setupInput } from "./input.js";
 import {createFog, drawFog, FOG, getFogState, isVisibleToPlayer} from "./fog.js";
 import {enemyBrain, playerBrain} from "./brains.js";
@@ -27,7 +27,9 @@ const enemy = createUnit({x: 300, y: 50, dir: {x: -1, y: 0}, type: "enemy", brai
 world.units.push(player);
 world.units.push(enemy);
 
-// TODO: Implement ability to throw flashbangs anywhere
+// TODO: Actually make flashbangs detonate
+// TODO: Make flashbangs stun units
+// TODO: Have flashbangs deal with walls
 // TODO: Implement ability to breach and clear a door with a flashbang
 
 // TODO: Shooting
@@ -42,6 +44,8 @@ function updateWorld(world) {
     for (const unit of world.units) {
         unit.brain?.(unit, world);
     }
+
+    resolvePendingActions(world);
 
     for (const unit of world.units) {
         updateUnit(unit, world);
@@ -77,7 +81,10 @@ function drawWorld(ctx, world) {
 
     drawFog(ctx, world.fog);
 
+    drawOverlays(ctx, world);
     drawUI(ctx, world);
+
+    cleanupActions(world);
 }
 
 function updateNoise(world) {
@@ -114,6 +121,45 @@ export function drawUI(ctx, world) {
         );
 
         yCursor += itemHeight;
+    }
+}
+
+// TODO: Refactor this to work with multiple units
+// TODO: Figure out how to remove these eventually
+export function drawOverlays(ctx, world) {
+    for (const fb of world.events.flashbangs) {
+        ctx.strokeStyle = "yellow";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(fb.origin.x, fb.origin.y);
+        ctx.lineTo(fb.x, fb.y);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(255,255,0,0.3)";
+        ctx.beginPath();
+        ctx.arc(fb.x, fb.y, fb.radius, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+}
+
+function resolvePendingActions(world) {
+    for (const unit of world.units) {
+        const action = unit.pendingAction;
+        if (!action || !action.target) continue;
+
+        switch (action.type) {
+            case "flashbang":
+                throwFlashbang(world, action.origin, action.target);
+        }
+    }
+}
+
+function cleanupActions(world) {
+    for (const unit of world.units) {
+        if (unit.pendingAction?.target) {
+            unit.pendingAction = null;
+        }
     }
 }
 

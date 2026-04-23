@@ -301,7 +301,7 @@ function inBounds(fog, x, y) {
 }
 
 export function getNearbyInteractables(player, world) {
-    const range = TILE_SIZE * 2;
+    const range = TILE_SIZE;
 
     const results = [];
 
@@ -340,3 +340,32 @@ export function getNearbyInteractables(player, world) {
     return results;
 }
 
+export function getGlobalActions(unit, world) {
+    return [
+        {
+            label: "Throw Flashbang",
+            fn: () => {
+                unit.pendingAction = {
+                    type: "flashbang",
+                    origin: { x: unit.x, y: unit.y },
+                    target: null
+                };
+            }
+        }
+    ];
+}
+
+export function throwFlashbang(world, origin, target) {
+    world.events.flashbangs.push({
+        x: target.x,
+        y: target.y,
+        origin,
+        radius: 80,
+        detonationTime: performance.now() + 1500,
+        effect: {
+            blindDuration: 3000,
+            deafDuration: 3000
+        },
+        detonated: false
+    });
+}
