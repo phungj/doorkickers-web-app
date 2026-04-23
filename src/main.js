@@ -2,8 +2,9 @@ import { sim } from "./sim.js";
 import {drawMap, map} from "./map.js";
 import {createUnit, updateUnit, drawUnit, revealFromUnit, throwFlashbang} from "./unit.js";
 import { setupInput } from "./input.js";
-import {createFog, drawFog, FOG, getFogState, isVisibleToPlayer} from "./fog.js";
+import {createFog, drawFog, FOG, getFogState} from "./fog.js";
 import {enemyBrain, playerBrain} from "./brains.js";
+import {updateFlashbangs} from "./systems/throwables.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -27,11 +28,11 @@ const enemy = createUnit({x: 300, y: 50, dir: {x: -1, y: 0}, type: "enemy", brai
 world.units.push(player);
 world.units.push(enemy);
 
-// TODO: Actually make flashbangs detonate
-// TODO: Make flashbangs stun units
 // TODO: Have throwing flashbangs deal with walls
 // TODO: have flashbangs deal with los
+// TODO: Add flashbang sfx
 // TODO: Implement ability to breach and clear a door with a flashbang
+// TODO: Debug flashbang throwing when paused
 
 // TODO: Shooting
 // TODO: Edge of fog interactions like enemy silhouettes
@@ -53,6 +54,7 @@ function updateWorld(world) {
     }
 
     updateNoise(world);
+    updateFlashbangs(world);
 
     for (const unit of world.units.filter(u => u.type === "player")) {
         revealFromUnit(unit, world.fog);

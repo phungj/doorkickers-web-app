@@ -1,5 +1,6 @@
 import { Tile, getTileWorld } from "./map.js";
 
+// TODO: Integrate world into los
 export function hasLineOfSight(x0, y0, x1, y1) {
     const dx = x1 - x0;
     const dy = y1 - y0;
@@ -29,6 +30,12 @@ export function hasLineOfSight(x0, y0, x1, y1) {
 }
 
 export function canSee(observer, x, y) {
+    const now = performance.now();
+
+    if (observer.blindedUntil && now < observer.blindedUntil) {
+        return false;
+    }
+
     const dx = x - observer.x;
     const dy = y - observer.y;
 

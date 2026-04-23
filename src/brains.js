@@ -136,7 +136,7 @@ function findVisibleTarget(unit, world) {
     for (const u of world.units) {
         if (u.type !== "player") continue;
 
-        if (!canSee(unit, u.x, u.y)) continue;
+        if (!canSee(unit, u.x, u.y, world)) continue;
 
         const dx = u.x - unit.x;
         const dy = u.y - unit.y;

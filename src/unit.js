@@ -58,7 +58,9 @@ export function createUnit({
         state: States.IDLE,
         lastSeen: null,
         stateTimer: 0,
-        currentGoal: null
+        currentGoal: null,
+        blindedUntil: 0,
+        deafUntil: 0
     };
 }
 
@@ -78,7 +80,7 @@ export function updateUnit(unit, world) {
 
 export function drawUnit(ctx, unit) {
     if (unit.type === "enemy") {
-        ctx.fillStyle = "red";
+        ctx.fillStyle = getEnemyColor(unit);
     } else {
         ctx.fillStyle = "cyan";
     }
@@ -142,6 +144,16 @@ export function drawUnit(ctx, unit) {
         );
         ctx.stroke();
     }
+}
+
+function getEnemyColor(unit) {
+    const now = performance.now();
+
+    if (unit.blindedUntil && now < unit.blindedUntil) {
+        return "white";
+    }
+
+    return "red";
 }
 
 export function simplifyPath(points) {
