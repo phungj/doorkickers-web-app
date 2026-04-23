@@ -385,13 +385,11 @@ export function getGlobalActions(unit, world) {
 export function throwFlashbang(world, origin, target) {
     const now = performance.now();
 
-    // 🔹 compute raw vector
     let dx = target.x - origin.x;
     let dy = target.y - origin.y;
 
     let dist = Math.hypot(dx, dy);
 
-    // 🔹 clamp to max range (safety + consistency layer)
     if (dist > FLASHBANG_MAX_RANGE) {
         const scale = FLASHBANG_MAX_RANGE / dist;
 

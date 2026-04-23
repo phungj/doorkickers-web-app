@@ -11,12 +11,16 @@ export function setupInput(canvas, world) {
 
         const { x, y } = getMousePos(e);
 
-        if (selectedUnit?.pendingAction) {
-            const origin = selectedUnit.pendingAction.origin;
+        for (const unit of world.units) {
+            const action = unit.pendingAction;
 
-            selectedUnit.pendingAction.target = clampFlashbangTarget(origin, { x, y });
-            selectedUnit.pendingAction.confirmed = true;
-            return;
+            if (!action || action.confirmed) continue;
+
+            if (action.type === "flashbang") {
+                action.target = clampFlashbangTarget(action.origin, { x, y });
+                action.confirmed = true;
+                return;
+            }
         }
 
         const menu = world.ui.contextMenu;
@@ -59,11 +63,16 @@ export function setupInput(canvas, world) {
     canvas.addEventListener("mousemove", (e) => {
         const { x, y } = getMousePos(e);
 
-        if (selectedUnit?.pendingAction) {
-            const origin = selectedUnit.pendingAction.origin;
+        for (const unit of world.units) {
+            const action = unit.pendingAction;
 
-            selectedUnit.pendingAction.target = clampFlashbangTarget(origin, { x, y });
-            return;
+            if (!unit.alive) continue;
+            if (!action || action.confirmed) continue;
+
+            if (action.type === "flashbang") {
+                action.target = clampFlashbangTarget(action.origin, { x, y });
+                return;
+            }
         }
 
 
