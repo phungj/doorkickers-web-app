@@ -1,5 +1,5 @@
 export function emitNoise(world, x, y, radius, type) {
-    world.noiseEvents.push({
+    world.events.noise.push({
         x,
         y,
         radius,

@@ -320,6 +320,7 @@ export function getNearbyInteractables(player, world) {
                 const dx = wx - player.x;
                 const dy = wy - player.y;
 
+                // TODO: Implement door closing contextual action
                 if (Math.hypot(dx, dy) <= range) {
                     results.push({
                         type: "door",
@@ -338,3 +339,4 @@ export function getNearbyInteractables(player, world) {
 
     return results;
 }
+

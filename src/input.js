@@ -83,6 +83,8 @@ export function setupInput(canvas, world) {
 
         if (unit) {
             selectedUnit = unit;
+        } else {
+            return;
         }
 
         if (world.ui.contextMenu) {
@@ -95,7 +97,9 @@ export function setupInput(canvas, world) {
         const actions = [];
 
         for (const interactable of interactables) {
-            actions.push(interactable.actions);
+            for (const a of interactable.actions) {
+                actions.push(a);
+            }
         }
 
         if (actions.length > 0) {

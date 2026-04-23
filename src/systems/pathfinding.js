@@ -3,7 +3,12 @@ import {getTileGrid, Tile, TILE_SIZE} from "../map.js";
 function isWalkable(tx, ty) {
     const tile = getTileGrid(tx, ty);
 
-    return tile !== Tile.WALL && tile !== Tile.DOOR_CLOSED;
+    return tile !== Tile.WALL;
+}
+
+function requiresInteraction(tx, ty) {
+    const tile = getTileGrid(tx, ty);
+    return tile === Tile.DOOR_CLOSED;
 }
 
 function toGrid(x, y) {

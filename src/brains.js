@@ -156,7 +156,7 @@ function hearNoise(unit, world) {
     let best = null;
     let bestDist = Infinity;
 
-    for (const n of world.noiseEvents) {
+    for (const n of world.events.noise) {
         const dx = n.x - unit.x;
         const dy = n.y - unit.y;
         const dist = Math.hypot(dx, dy);
