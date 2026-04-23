@@ -51,6 +51,12 @@ export function createUnit({
         size: 15,
         visionRange: 100,
         speed: 2,
+        hp: 100,
+        weapon: {
+            cooldown: 0,
+            fireRate: 5
+        },
+        alive: true,
         rawPath: [],
         waypoints: [],
         targetIndex: 0,
@@ -67,6 +73,7 @@ export function createUnit({
 
 // TODO: Handle clipping of enemies when together?
 export function updateUnit(unit, world) {
+    if (!unit.alive) return;
     if (!hasActiveWaypoint(unit)) return;
 
     const wp = getCurrentWaypoint(unit);
@@ -80,7 +87,9 @@ export function updateUnit(unit, world) {
 }
 
 export function drawUnit(ctx, unit) {
-    if (unit.type === "enemy") {
+    if (!unit.alive) {
+        ctx.fillStyle = "#555";
+    } else if (unit.type === "enemy") {
         ctx.fillStyle = getEnemyColor(unit);
     } else {
         ctx.fillStyle = "cyan";

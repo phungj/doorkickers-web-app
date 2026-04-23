@@ -32,9 +32,8 @@ world.units.push(enemy);
 
 // TODO: Add flashbang sfx
 // TODO: Add gunshot sfx
-
-
-// TODO: Shooting
+// tODO: Make enemies not run towards you when shooting
+// TODO: Make enemies turn towards shooting
 // TODO: Add win check
 
 // TODO: Adjusting facing using right click
@@ -48,10 +47,13 @@ setupInput(canvas, world);
 // TODO: Edge of fog interactions like enemy silhouettes
 // TODO: Raytracing door opening?
 // TODO: Add actual planning of some sort
+// TODO: Added shooting fx
 
 function updateWorld(world, dt) {
     for (const unit of world.units) {
-        unit.brain?.(unit, world);
+        if (unit.alive) {
+            unit.brain?.(unit, world);
+        }
     }
 
     resolvePendingActions(world);

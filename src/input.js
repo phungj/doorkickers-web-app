@@ -67,7 +67,11 @@ export function setupInput(canvas, world) {
         }
 
 
-        if (!dragging || !selectedUnit) return;
+        if (!dragging || !selectedUnit || !selectedUnit.alive) {
+            dragging = false;
+            selectedUnit = null;
+            return;
+        }
 
         // TODO: Refactor this to prevent invalid paths from being drawn
         selectedUnit.rawPath.push({ x, y });
@@ -86,9 +90,9 @@ export function setupInput(canvas, world) {
 
         const { x, y } = getMousePos(e);
 
-        const unit = getUnitAt(world.units.filter(u => u.type === "player"), x, y);
+        const unit = getUnitAt(world.units.filter(u => u.type === "player" && u.alive), x, y);
 
-        if (unit) {
+        if (unit && unit.alive) {
             selectedUnit = unit;
         } else {
             return;
@@ -145,7 +149,7 @@ export function setupInput(canvas, world) {
 
         const { x, y } = getMousePos(e);
 
-        const unit = getUnitAt(world.units.filter(u => u.type === "player"), x, y);
+        const unit = getUnitAt(world.units.filter(u => u.type === "player" && u.alive), x, y);
 
         if (unit) {
             selectedUnit = unit;
@@ -158,21 +162,11 @@ export function setupInput(canvas, world) {
             selectedUnit = null;
         }
     }
-
-    function executePendingAction(world, unit) {
-        const action = unit.pendingAction;
-        if (!action || !action.target) return;
-
-        switch (action.type) {
-            case "flashbang":
-                throwFlashbang(world, action.origin, action.target);
-                break;
-        }
-    }
 }
 
 function getUnitAt(units, x, y) {
     return units.find(unit =>
+        unit.alive &&
         x > unit.x - unit.size &&
         x < unit.x + unit.size &&
         y > unit.y - unit.size &&
@@ -183,4 +177,5 @@ function getUnitAt(units, x, y) {
 function closeContextMenu(world) {
     world.ui.contextMenu = null;
 }
+
 

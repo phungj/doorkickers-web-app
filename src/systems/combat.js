@@ -1,7 +1,7 @@
 import {getTileWorld, isBlockingTile} from "../map.js";
 
 // TODO: Add noise to this
-export function fireShot(world, shooter, targetX, targetY) {
+function fireShot(world, shooter, targetX, targetY) {
     const dx = targetX - shooter.x;
     const dy = targetY - shooter.y;
 
@@ -11,8 +11,8 @@ export function fireShot(world, shooter, targetX, targetY) {
     const stepX = dx / steps;
     const stepY = dy / steps;
 
-    let x = shooter.x;
-    let y = shooter.y;
+    let x = shooter.x + (dx / dist) * shooter.size;
+    let y = shooter.y + (dy / dist) * shooter.size;
 
     for (let i = 0; i < steps; i++) {
         x += stepX;
@@ -27,6 +27,7 @@ export function fireShot(world, shooter, targetX, targetY) {
 
         // 2. unit hit
         const hit = world.units.find(u => {
+            if (u === shooter) return false;
             const dx = u.x - x;
             const dy = u.y - y;
             return Math.hypot(dx, dy) < u.size;
@@ -42,11 +43,30 @@ export function fireShot(world, shooter, targetX, targetY) {
     // no hit
 }
 
+export function tryShoot(unit, target, world) {
+    const now = performance.now();
+
+    if (now < unit.weapon.cooldown) return false;
+
+    fireShot(world, unit, target.x, target.y);
+
+    unit.weapon.cooldown = now + (1000 / unit.weapon.fireRate);
+
+    console.log(`${unit.type} shoots ${target.type}\n${unit.type}:${unit.hp}\n${target.type}:${target.hp}`)
+
+    return true;
+}
+
 function applyDamage(unit, shooter) {
     unit.hp = (unit.hp ?? 100) - 34;
 
     if (unit.hp <= 0) {
-        unit.dead = true;
+        unit.alive = false;
+        unit.pendingAction = null;
+        unit.waypoints = [];
+        unit.targetIndex = 0;
+        unit.currentGoal = null;
+        unit.state = "idle";
     }
 }
 

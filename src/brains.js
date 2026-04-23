@@ -1,7 +1,7 @@
 import {canSee} from "./los.js";
 import { aStar } from "./systems/pathfinding.js";
 import {simplifyPath} from "./unit.js";
-import {fireShot} from "./systems/combat.js";
+import {tryShoot} from "./systems/combat.js";
 
 const EVENT_PRIORITY = {
     vision: 100,
@@ -16,7 +16,12 @@ const stateFunctions = {
 };
 
 export function playerBrain(unit, world) {
+    if (!unit.alive) return;
 
+    const target = findVisibleTarget(unit, world);
+    if (!target) return;
+
+    tryShoot(unit, target, world);
 }
 
 // TODO: enemy memory?
@@ -88,6 +93,12 @@ function chaseState(unit, world) {
     const target = unit.lastSeen;
     if (!target) return;
 
+    const visibleTarget = findVisibleTarget(unit, world);
+
+    if (visibleTarget) {
+        tryShoot(unit, visibleTarget, world);
+    }
+
     const needsNewPath =
         !unit.currentGoal ||
         Math.hypot(unit.currentGoal.x - target.x, unit.currentGoal.y - target.y) > 10;
@@ -105,6 +116,11 @@ function chaseState(unit, world) {
 function searchState(unit, world) {
     const target = unit.lastSeen;
     if (!target) return;
+
+    const visibleTarget = findVisibleTarget(unit, world);
+    if (visibleTarget) {
+        tryShoot(unit, visibleTarget, world);
+    }
 
     const needsNewPath =
         !unit.currentGoal ||
@@ -135,7 +151,8 @@ function findVisibleTarget(unit, world) {
     let closestDist = Infinity;
 
     for (const u of world.units) {
-        if (u.type !== "player") continue;
+        if (u.type === unit.type) continue;
+        if (!u.alive) continue;
 
         if (!canSee(unit, u.x, u.y, world)) continue;
 
@@ -152,20 +169,6 @@ function findVisibleTarget(unit, world) {
     return closest;
 }
 
-function tryShoot(unit, target, world) {
-    const now = performance.now();
-
-    unit.weapon = unit.weapon || {
-        cooldown: 0,
-        fireRate: 3
-    };
-
-    if (now < unit.weapon.cooldown) return;
-
-    fireShot(world, unit, target.x, target.y);
-
-    unit.weapon.cooldown = now + (1000 / unit.weapon.fireRate);
-}
 
 // TODO: Noise prioritization can be added here
 function hearNoise(unit, world) {
