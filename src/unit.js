@@ -1,4 +1,4 @@
-import { getTileAt, openDoorAt, Tile, TILE_SIZE } from "./map.js";
+import { getTileWorld, openDoorAt, Tile, TILE_SIZE } from "./map.js";
 import { FOG, idx } from "./fog.js";
 import {canSee} from "./los.js";
 
@@ -57,7 +57,8 @@ export function createUnit({
         brain,
         state: States.IDLE,
         lastSeen: null,
-        stateTimer: 0
+        stateTimer: 0,
+        currentGoal: null
     };
 }
 
@@ -193,7 +194,7 @@ function annotateWaypoints(waypoints) {
     for (let i = 0; i < waypoints.length; i++) {
         const wp = waypoints[i];
 
-        const tile = getTileAt(wp.x, wp.y);
+        const tile = getTileWorld(wp.x, wp.y);
 
         if (tile === Tile.DOOR_CLOSED) {
             wp.action = { type: "openDoor" };
@@ -212,7 +213,7 @@ function isLineWalkable(x0, y0, x1, y1) {
         const x = x0 + dx * t;
         const y = y0 + dy * t;
 
-        const tile = getTileAt(x, y);
+        const tile = getTileWorld(x, y);
 
         if (tile === Tile.WALL) {
             return false;

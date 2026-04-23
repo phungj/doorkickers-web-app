@@ -11,7 +11,8 @@ const ctx = canvas.getContext("2d");
 const world = {
     map,
     fog: createFog(map[0].length, map.length),
-    units: []
+    units: [],
+    noiseEvents: []
 }
 
 const player = createUnit({x: 100, y: 50, dir: {x: 1, y: 0}, type: "player", brain: playerBrain});
@@ -21,14 +22,11 @@ world.units.push(player);
 world.units.push(enemy);
 
 
-// TODO: Prevent enemy pathing through doors and walls
 // TODO: Implementing contextual actions (e.g. opening a door nearby)
 // TODO: Implementing floating actions (e.g. throwing a flashbang from anywhere)
 // TODO: Shooting
 // TODO: Edge of fog interactions like enemy silhouettes
 // TODO: Raytracing door opening?
-// TODO: Noise
-// TODO: Enemy state machine
 // TODO: Handle clipping of enemies when together
 // TODO: Adjusting facing using right click
 // TODO: Pie slicing with shift right click
@@ -43,6 +41,8 @@ function updateWorld(world) {
     for (const unit of world.units) {
         updateUnit(unit, world);
     }
+
+    updateNoise(world);
 
     for (const unit of world.units.filter(u => u.type === "player")) {
         revealFromUnit(unit, world.fog);
@@ -71,6 +71,13 @@ function drawWorld(ctx, world) {
     }
 
     drawFog(ctx, world.fog);
+}
+
+function updateNoise(world) {
+    world.noiseEvents = world.noiseEvents.filter(n => {
+        n.ttl--;
+        return n.ttl > 0;
+    });
 }
 
 function loop() {

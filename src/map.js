@@ -17,8 +17,11 @@ export const map = [
 ];
 
 
+export function getTileGrid(tx, ty) {
+    return map[ty]?.[tx];
+}
 
-export function getTileAt(x, y) {
+export function getTileWorld(x, y) {
     const tx = Math.floor(x / TILE_SIZE);
     const ty = Math.floor(y / TILE_SIZE);
 

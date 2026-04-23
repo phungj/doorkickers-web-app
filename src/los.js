@@ -1,4 +1,4 @@
-import { Tile, getTileAt } from "./map.js";
+import { Tile, getTileWorld } from "./map.js";
 
 export function hasLineOfSight(x0, y0, x1, y1) {
     const dx = x1 - x0;
@@ -15,7 +15,7 @@ export function hasLineOfSight(x0, y0, x1, y1) {
         const x = x0 + dx * t;
         const y = y0 + dy * t;
 
-        const tile = getTileAt(x, y);
+        const tile = getTileWorld(x, y);
 
         if (tile === Tile.WALL || tile === Tile.DOOR_CLOSED) {
             return false;
