@@ -29,7 +29,8 @@ world.units.push(enemy);
 
 // TODO: Actually make flashbangs detonate
 // TODO: Make flashbangs stun units
-// TODO: Have flashbangs deal with walls
+// TODO: Have throwing flashbangs deal with walls
+// TODO: have flashbangs deal with los
 // TODO: Implement ability to breach and clear a door with a flashbang
 
 // TODO: Shooting
