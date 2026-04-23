@@ -1,6 +1,7 @@
 import { getTileWorld, openDoorAt, Tile, TILE_SIZE } from "./map.js";
 import { FOG, idx } from "./fog.js";
 import {canSee} from "./los.js";
+import {FLASHBANG_RADIUS} from "./systems/throwables.js";
 
 const ActionType = {
     MOVE: "move",
@@ -352,6 +353,7 @@ export function getNearbyInteractables(player, world) {
     return results;
 }
 
+// TODO: Limit flashbangs somehow, probably give units inventories
 export function getGlobalActions(unit, world) {
     return [
         {
@@ -360,7 +362,9 @@ export function getGlobalActions(unit, world) {
                 unit.pendingAction = {
                     type: "flashbang",
                     origin: { x: unit.x, y: unit.y },
-                    target: null
+                    target: null,
+                    confirmed: false,
+                    resolved: false
                 };
             }
         }
@@ -368,12 +372,15 @@ export function getGlobalActions(unit, world) {
 }
 
 export function throwFlashbang(world, origin, target) {
+    const now = performance.now();
+
     world.events.flashbangs.push({
         x: target.x,
         y: target.y,
         origin,
-        radius: 80,
-        detonationTime: performance.now() + 1500,
+        radius: FLASHBANG_RADIUS,
+        detonationTime: now + 1500,
+        expiryTime: now + 1700,
         effect: {
             blindDuration: 3000,
             deafDuration: 3000

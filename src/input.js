@@ -12,7 +12,7 @@ export function setupInput(canvas, world) {
 
         if (selectedUnit?.pendingAction) {
             selectedUnit.pendingAction.target = { x, y };
-
+            selectedUnit.pendingAction.confirmed = true;
             return;
         }
 
@@ -54,9 +54,15 @@ export function setupInput(canvas, world) {
     });
 
     canvas.addEventListener("mousemove", (e) => {
-        if (!dragging || !selectedUnit) return;
-
         const { x, y } = getMousePos(e);
+
+        if (selectedUnit?.pendingAction) {
+            selectedUnit.pendingAction.target = { x, y };
+            return;
+        }
+
+
+        if (!dragging || !selectedUnit) return;
 
         // TODO: Refactor this to prevent invalid paths from being drawn
         selectedUnit.rawPath.push({ x, y });

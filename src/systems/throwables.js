@@ -1,15 +1,22 @@
+export const FLASHBANG_RADIUS = 80;
+export const FLASHBANG_DURATION = 200;
+
 // TODO: Make flashbangs make noise
 export function updateFlashbangs(world) {
     const now = performance.now();
 
-    for (const fb of world.events.flashbangs) {
-        if (fb.detonated) continue;
-
-        if (now >= fb.detonationTime) {
-            detonateFlashbang(world, fb);
-            fb.detonated = true;
+    world.events.flashbangs = world.events.flashbangs.filter(fb => {
+        if (!fb.detonated) {
+            if (now >= fb.detonationTime) {
+                detonateFlashbang(world, fb);
+                fb.detonated = true;
+            }
+            return true;
         }
-    }
+
+        // 🔹 remove after expiration
+        return now < fb.expiryTime;
+    });
 }
 
 function detonateFlashbang(world, fb) {

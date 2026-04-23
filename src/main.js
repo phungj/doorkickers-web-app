@@ -1,10 +1,10 @@
-import { sim } from "./sim.js";
+import {sim} from "./sim.js";
 import {drawMap, map} from "./map.js";
 import {createUnit, updateUnit, drawUnit, revealFromUnit, throwFlashbang} from "./unit.js";
-import { setupInput } from "./input.js";
+import {setupInput} from "./input.js";
 import {createFog, drawFog, FOG, getFogState} from "./fog.js";
 import {enemyBrain, playerBrain} from "./brains.js";
-import {updateFlashbangs} from "./systems/throwables.js";
+import {FLASHBANG_DURATION, FLASHBANG_RADIUS, updateFlashbangs} from "./systems/throwables.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -28,18 +28,27 @@ const enemy = createUnit({x: 300, y: 50, dir: {x: -1, y: 0}, type: "enemy", brai
 world.units.push(player);
 world.units.push(enemy);
 
+
+// TODO: Visualize the arc of a flashbang being thrown
+
+// TODO: Flashbang speed considerations?
+// TODO: Flashbang max range
 // TODO: Have throwing flashbangs deal with walls
 // TODO: have flashbangs deal with los
 // TODO: Add flashbang sfx
 // TODO: Implement ability to breach and clear a door with a flashbang
 // TODO: Debug flashbang throwing when paused
 
+
 // TODO: Shooting
+// TODO: Add win check
 // TODO: Edge of fog interactions like enemy silhouettes
 // TODO: Raytracing door opening?
 // TODO: Adjusting facing using right click
 // TODO: Pie slicing with shift right click
 // TODO: Strafing with control right click
+// TODO: Add actual planning of some sort
+// TODO: Noise
 setupInput(canvas, world);
 
 function updateWorld(world) {
@@ -130,7 +139,58 @@ export function drawUI(ctx, world) {
 // TODO: Refactor this to work with multiple units
 // TODO: Figure out how to remove these eventually
 export function drawOverlays(ctx, world) {
+    for (const unit of world.units) {
+        const action = unit.pendingAction;
+
+        if (!action || action.type !== "flashbang" || !action.target) continue;
+
+        ctx.strokeStyle = "yellow";
+        ctx.lineWidth = 2;
+
+        // line
+        ctx.beginPath();
+        ctx.moveTo(action.origin.x, action.origin.y);
+        ctx.lineTo(action.target.x, action.target.y);
+        ctx.stroke();
+
+        // radius
+        ctx.strokeStyle = "rgba(255,255,0,0.3)";
+        ctx.beginPath();
+        ctx.arc(action.target.x, action.target.y, FLASHBANG_RADIUS, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
     for (const fb of world.events.flashbangs) {
+        drawFlashbang(ctx, fb);
+    }
+}
+
+function resolvePendingActions(world) {
+    for (const unit of world.units) {
+        const action = unit.pendingAction;
+        if (!action || !action.target || !action.confirmed) continue;
+
+        switch (action.type) {
+            case "flashbang":
+                throwFlashbang(world, action.origin, action.target);
+                break;
+        }
+
+        action.resolved = true;
+    }
+}
+
+function cleanupActions(world) {
+    for (const unit of world.units) {
+        if (unit.pendingAction?.resolved) {
+            unit.pendingAction = null;
+        }
+    }
+}
+
+function drawFlashbang(ctx, fb) {
+    if (!fb.detonated) {
+        // 🔹 Pre-detonation (trajectory)
         ctx.strokeStyle = "yellow";
         ctx.lineWidth = 2;
 
@@ -143,27 +203,32 @@ export function drawOverlays(ctx, world) {
         ctx.beginPath();
         ctx.arc(fb.x, fb.y, fb.radius, 0, Math.PI * 2);
         ctx.stroke();
-    }
-}
 
-function resolvePendingActions(world) {
-    for (const unit of world.units) {
-        const action = unit.pendingAction;
-        if (!action || !action.target) continue;
-
-        switch (action.type) {
-            case "flashbang":
-                throwFlashbang(world, action.origin, action.target);
-        }
+        return;
     }
-}
 
-function cleanupActions(world) {
-    for (const unit of world.units) {
-        if (unit.pendingAction?.target) {
-            unit.pendingAction = null;
-        }
-    }
+    // 🔹 Post-detonation (flash effect)
+    const now = performance.now();
+
+    const t = (fb.expiryTime - now) / FLASHBANG_DURATION;
+    const alpha = Math.max(0, Math.min(1, t));
+
+    const progress = 1 - alpha; // 0 → 1
+
+    // expanding radius
+    const radius = fb.radius * (1 + progress * 0.3);
+
+    // outer glow
+    ctx.fillStyle = `rgba(255,255,255,${alpha * 0.4})`;
+    ctx.beginPath();
+    ctx.arc(fb.x, fb.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // inner core
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(fb.x, fb.y, radius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
 }
 
 function loop() {
