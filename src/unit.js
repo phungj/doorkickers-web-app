@@ -62,6 +62,7 @@ export function createUnit({
     };
 }
 
+// TODO: Handle clipping of enemies when together?
 export function updateUnit(unit, world) {
     if (!hasActiveWaypoint(unit)) return;
 
@@ -297,4 +298,43 @@ function fadeFog(fog) {
 
 function inBounds(fog, x, y) {
     return x >= 0 && y >= 0 && x < fog.width && y < fog.height;
+}
+
+export function getNearbyInteractables(player, world) {
+    const range = TILE_SIZE * 2;
+
+    const results = [];
+
+    const cx = Math.floor(player.x / TILE_SIZE);
+    const cy = Math.floor(player.y / TILE_SIZE);
+
+    const radius = 2; // small grid radius is enough for now
+
+    for (let y = cy - radius; y <= cy + radius; y++) {
+        for (let x = cx - radius; x <= cx + radius; x++) {
+            const tile = world.map?.[y]?.[x];
+            if (tile === Tile.DOOR_CLOSED) {
+                const wx = x * TILE_SIZE + TILE_SIZE / 2;
+                const wy = y * TILE_SIZE + TILE_SIZE / 2;
+
+                const dx = wx - player.x;
+                const dy = wy - player.y;
+
+                if (Math.hypot(dx, dy) <= range) {
+                    results.push({
+                        type: "door",
+                        x,
+                        y,
+                        worldX: wx,
+                        worldY: wy,
+                        actions: [
+                            {label: "Open Door", fn: () => openDoorAt(wx, wy)}
+                        ]
+                    });
+                }
+            }
+        }
+    }
+
+    return results;
 }

@@ -12,7 +12,10 @@ const world = {
     map,
     fog: createFog(map[0].length, map.length),
     units: [],
-    noiseEvents: []
+    noiseEvents: [],
+    ui: {
+        contextMenu: null
+    }
 }
 
 const player = createUnit({x: 100, y: 50, dir: {x: 1, y: 0}, type: "player", brain: playerBrain});
@@ -22,12 +25,15 @@ world.units.push(player);
 world.units.push(enemy);
 
 
-// TODO: Implementing contextual actions (e.g. opening a door nearby)
+// TODO: Fix right clicking in the middle of nowhere: make it so right clicking only does something when you click on a guy
+// TODO: Look into action structure
+
+// TODO: Possibly handle door aware pathfinding (contextual actions for AI)
+
 // TODO: Implementing floating actions (e.g. throwing a flashbang from anywhere)
 // TODO: Shooting
 // TODO: Edge of fog interactions like enemy silhouettes
 // TODO: Raytracing door opening?
-// TODO: Handle clipping of enemies when together
 // TODO: Adjusting facing using right click
 // TODO: Pie slicing with shift right click
 // TODO: Strafing with control right click
@@ -71,6 +77,8 @@ function drawWorld(ctx, world) {
     }
 
     drawFog(ctx, world.fog);
+
+    drawUI(ctx, world);
 }
 
 function updateNoise(world) {
@@ -78,6 +86,40 @@ function updateNoise(world) {
         n.ttl--;
         return n.ttl > 0;
     });
+}
+
+export function drawUI(ctx, world) {
+    const menu = world.ui.contextMenu;
+    if (!menu) return;
+
+    const padding = 10;
+    const itemHeight = 22;
+    const groupSpacing = 6;
+    const width = 160;
+
+    let yCursor = menu.y;
+
+    ctx.font = "14px sans-serif";
+
+    for (const group of menu.options) {
+        // optional group spacing
+        yCursor += groupSpacing;
+
+        for (const opt of group) {
+            // background row (optional highlight)
+            ctx.fillStyle = "rgba(0,0,0,0.7)";
+            ctx.fillRect(menu.x, yCursor, width, itemHeight);
+
+            ctx.fillStyle = "white";
+            ctx.fillText(
+                opt.label,
+                menu.x + padding,
+                yCursor + 15
+            );
+
+            yCursor += itemHeight;
+        }
+    }
 }
 
 function loop() {

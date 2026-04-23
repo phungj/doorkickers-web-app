@@ -47,6 +47,7 @@ function reconstructPath(cameFrom, current) {
     return path.map(p => toWorld(p.x, p.y));
 }
 
+// TODO: Possibly handle corner clipping
 export function aStar(start, end) {
     const startNode = toGrid(start.x, start.y);
     const endNode = toGrid(end.x, end.y);

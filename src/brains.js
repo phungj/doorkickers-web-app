@@ -19,6 +19,8 @@ export function playerBrain(unit, world) {
 }
 
 // TODO: enemy memory?
+// TODO: Implement just choosing to look vs move somewhere?
+// TODO: Make AI smarter when you eventually implement things like cover or grenades
 export function enemyBrain(unit, world) {
     const prevState = unit.state;
 
