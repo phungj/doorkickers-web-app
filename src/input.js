@@ -1,5 +1,6 @@
 import {getGlobalActions, getNearbyInteractables, simplifyPath, throwFlashbang} from "./unit.js";
 import {sim, stepSimulation} from "./sim.js";
+import {clampFlashbangTarget} from "./systems/throwables.js";
 
 export function setupInput(canvas, world) {
     let selectedUnit = null;
@@ -11,7 +12,9 @@ export function setupInput(canvas, world) {
         const { x, y } = getMousePos(e);
 
         if (selectedUnit?.pendingAction) {
-            selectedUnit.pendingAction.target = { x, y };
+            const origin = selectedUnit.pendingAction.origin;
+
+            selectedUnit.pendingAction.target = clampFlashbangTarget(origin, { x, y });
             selectedUnit.pendingAction.confirmed = true;
             return;
         }
@@ -57,7 +60,9 @@ export function setupInput(canvas, world) {
         const { x, y } = getMousePos(e);
 
         if (selectedUnit?.pendingAction) {
-            selectedUnit.pendingAction.target = { x, y };
+            const origin = selectedUnit.pendingAction.origin;
+
+            selectedUnit.pendingAction.target = clampFlashbangTarget(origin, { x, y });
             return;
         }
 

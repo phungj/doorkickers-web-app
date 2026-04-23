@@ -15,7 +15,8 @@ const world = {
     units: [],
     events: {
         noise: [],
-        flashbangs: []
+        flashbangs: [],
+        impacts: []
     },
     ui: {
         contextMenu: null
@@ -29,29 +30,26 @@ world.units.push(player);
 world.units.push(enemy);
 
 
-// TODO: Visualize the arc of a flashbang being thrown
-
-// TODO: Flashbang speed considerations?
-// TODO: Flashbang max range
-// TODO: Have throwing flashbangs deal with walls
-// TODO: have flashbangs deal with los
 // TODO: Add flashbang sfx
-// TODO: Implement ability to breach and clear a door with a flashbang
-// TODO: Debug flashbang throwing when paused
+// TODO: Add gunshot sfx
 
 
 // TODO: Shooting
 // TODO: Add win check
-// TODO: Edge of fog interactions like enemy silhouettes
-// TODO: Raytracing door opening?
+
 // TODO: Adjusting facing using right click
 // TODO: Pie slicing with shift right click
 // TODO: Strafing with control right click
-// TODO: Add actual planning of some sort
-// TODO: Noise
+
 setupInput(canvas, world);
 
-function updateWorld(world) {
+// TODO: Implement ability to breach and clear a door with a flashbang
+// TODO: Debug flashbang throwing when paused
+// TODO: Edge of fog interactions like enemy silhouettes
+// TODO: Raytracing door opening?
+// TODO: Add actual planning of some sort
+
+function updateWorld(world, dt) {
     for (const unit of world.units) {
         unit.brain?.(unit, world);
     }
@@ -63,7 +61,7 @@ function updateWorld(world) {
     }
 
     updateNoise(world);
-    updateFlashbangs(world);
+    updateFlashbangs(world, dt);
 
     for (const unit of world.units.filter(u => u.type === "player")) {
         revealFromUnit(unit, world.fog);
@@ -188,52 +186,45 @@ function cleanupActions(world) {
     }
 }
 
+// TODO: Render this with LOS considerations
 function drawFlashbang(ctx, fb) {
-    if (!fb.detonated) {
-        // 🔹 Pre-detonation (trajectory)
-        ctx.strokeStyle = "yellow";
-        ctx.lineWidth = 2;
+    if (fb.detonated) {
+        // explosion (keep your existing code)
+        const now = performance.now();
+        const t = (fb.expiryTime - now) / FLASHBANG_DURATION;
+        const alpha = Math.max(0, Math.min(1, t));
 
-        ctx.beginPath();
-        ctx.moveTo(fb.origin.x, fb.origin.y);
-        ctx.lineTo(fb.x, fb.y);
-        ctx.stroke();
+        const progress = 1 - alpha;
+        const radius = fb.radius * (1 + progress * 0.3);
 
-        ctx.strokeStyle = "rgba(255,255,0,0.3)";
+        ctx.fillStyle = `rgba(255,255,255,${alpha * 0.4})`;
         ctx.beginPath();
-        ctx.arc(fb.x, fb.y, fb.radius, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.arc(fb.x, fb.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.beginPath();
+        ctx.arc(fb.x, fb.y, radius * 0.5, 0, Math.PI * 2);
+        ctx.fill();
 
         return;
     }
 
-    // 🔹 Post-detonation (flash effect)
-    const now = performance.now();
-
-    const t = (fb.expiryTime - now) / FLASHBANG_DURATION;
-    const alpha = Math.max(0, Math.min(1, t));
-
-    const progress = 1 - alpha; // 0 → 1
-
-    // expanding radius
-    const radius = fb.radius * (1 + progress * 0.3);
-
-    // outer glow
-    ctx.fillStyle = `rgba(255,255,255,${alpha * 0.4})`;
+    ctx.fillStyle = "yellow";
     ctx.beginPath();
-    ctx.arc(fb.x, fb.y, radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // inner core
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-    ctx.beginPath();
-    ctx.arc(fb.x, fb.y, radius * 0.5, 0, Math.PI * 2);
+    ctx.arc(fb.x, fb.y, 3, 0, Math.PI * 2);
     ctx.fill();
 }
 
+let lastTime = performance.now();
+
 function loop() {
+    const now = performance.now();
+    const dt = (now - lastTime) / 1000; // seconds
+    lastTime = now;
+
     if (!sim.paused || sim.stepOnce) {
-        updateWorld(world);
+        updateWorld(world, dt);
         sim.stepOnce = false;
     }
 

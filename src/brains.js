@@ -1,6 +1,7 @@
 import {canSee} from "./los.js";
 import { aStar } from "./systems/pathfinding.js";
 import {simplifyPath} from "./unit.js";
+import {fireShot} from "./systems/combat.js";
 
 const EVENT_PRIORITY = {
     vision: 100,
@@ -149,6 +150,21 @@ function findVisibleTarget(unit, world) {
     }
 
     return closest;
+}
+
+function tryShoot(unit, target, world) {
+    const now = performance.now();
+
+    unit.weapon = unit.weapon || {
+        cooldown: 0,
+        fireRate: 3
+    };
+
+    if (now < unit.weapon.cooldown) return;
+
+    fireShot(world, unit, target.x, target.y);
+
+    unit.weapon.cooldown = now + (1000 / unit.weapon.fireRate);
 }
 
 // TODO: Noise prioritization can be added here

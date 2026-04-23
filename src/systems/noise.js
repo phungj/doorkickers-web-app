@@ -1,3 +1,4 @@
+// TODO: Noise integration with shooting and flashes
 export function emitNoise(world, x, y, radius, type) {
     world.events.noise.push({
         x,

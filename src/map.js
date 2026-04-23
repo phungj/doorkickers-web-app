@@ -64,6 +64,10 @@ export function getTileWorld(x, y) {
     return map[ty]?.[tx];
 }
 
+export function isBlockingTile(tile) {
+    return tile === Tile.WALL || tile === Tile.DOOR_CLOSED;
+}
+
 export function openDoorAt(x, y) {
     const tx = Math.floor(x / TILE_SIZE);
     const ty = Math.floor(y / TILE_SIZE);

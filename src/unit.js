@@ -1,7 +1,7 @@
 import { getTileWorld, openDoorAt, Tile, TILE_SIZE } from "./map.js";
 import { FOG, idx } from "./fog.js";
 import {canSee} from "./los.js";
-import {FLASHBANG_RADIUS} from "./systems/throwables.js";
+import {FLASHBANG_MAX_RANGE, FLASHBANG_RADIUS} from "./systems/throwables.js";
 
 const ActionType = {
     MOVE: "move",
@@ -371,20 +371,61 @@ export function getGlobalActions(unit, world) {
     ];
 }
 
+// TODO: tune this
+// TODO: Possible time refactoring
 export function throwFlashbang(world, origin, target) {
     const now = performance.now();
 
+    // 🔹 compute raw vector
+    let dx = target.x - origin.x;
+    let dy = target.y - origin.y;
+
+    let dist = Math.hypot(dx, dy);
+
+    // 🔹 clamp to max range (safety + consistency layer)
+    if (dist > FLASHBANG_MAX_RANGE) {
+        const scale = FLASHBANG_MAX_RANGE / dist;
+
+        dx *= scale;
+        dy *= scale;
+
+        dist = FLASHBANG_MAX_RANGE;
+
+        target = {
+            x: origin.x + dx,
+            y: origin.y + dy
+        };
+    }
+
+    const speed = 600; // px/sec
+    const travelDuration = dist / speed;
+
+    const vx = dx / travelDuration;
+    const vy = dy / travelDuration;
+
     world.events.flashbangs.push({
-        x: target.x,
-        y: target.y,
-        origin,
+        origin: { ...origin },
+        target,
+
+        x: origin.x,
+        y: origin.y,
+
+        vx,
+        vy,
+
+        startTime: now,
+        travelDuration: travelDuration * 1000,
+
+        detonationTime: now + travelDuration * 1000,
+        expiryTime: now + travelDuration * 1000 + 200,
+
         radius: FLASHBANG_RADIUS,
-        detonationTime: now + 1500,
-        expiryTime: now + 1700,
+
         effect: {
             blindDuration: 3000,
             deafDuration: 3000
         },
+
         detonated: false
     });
 }
