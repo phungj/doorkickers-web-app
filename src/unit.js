@@ -3,6 +3,8 @@ import { FOG, idx } from "./fog.js";
 import {canSee} from "./los.js";
 import {FLASHBANG_MAX_RANGE, FLASHBANG_RADIUS} from "./systems/throwables.js";
 
+const MAX_HP = 100;
+
 const ActionType = {
     MOVE: "move",
     OPEN_DOOR: "openDoor"
@@ -31,7 +33,8 @@ const States = {
 // };
 
 // TODO: Tune vision range (possibly just make infinite?)
-export function createUnit({
+// TODO: Implement ammo and reloading
+export function createUnit({id,
                                x,
                                y,
                                dir,
@@ -45,16 +48,17 @@ export function createUnit({
         : { x: 1, y: 0 };
 
     return {
+        id,
         x,
         y,
         dir: finalDir,
         size: 15,
         visionRange: 100,
         speed: 2,
-        hp: 100,
+        hp: MAX_HP,
         weapon: {
             cooldown: 0,
-            fireRate: 5
+            fireRate: 3
         },
         alive: true,
         rawPath: [],
@@ -95,12 +99,24 @@ export function drawUnit(ctx, unit) {
         ctx.fillStyle = "cyan";
     }
 
-    ctx.fillRect(
-        unit.x - unit.size / 2,
-        unit.y - unit.size / 2,
-        unit.size,
-        unit.size
-    );
+    const hpRatio =
+        unit.alive && unit.hp != null && MAX_HP
+            ? Math.max(0, unit.hp / MAX_HP)
+            : 0;
+
+    const fillHeight = unit.size * hpRatio;
+    const topY = unit.y + (unit.size - fillHeight);
+
+    ctx.save();
+
+    // clip to remaining HP region
+    ctx.beginPath();
+    ctx.rect(unit.x, topY, unit.size, fillHeight);
+    ctx.clip();
+
+    ctx.fillRect(unit.x, unit.y, unit.size, unit.size);
+
+    ctx.restore();
 
     if (unit.type === "player") {
         if (unit.rawPath && unit.rawPath.length > 1) {

@@ -23,8 +23,8 @@ const world = {
     }
 }
 
-const player = createUnit({x: 100, y: 50, dir: {x: 1, y: 0}, type: "player", brain: playerBrain});
-const enemy = createUnit({x: 300, y: 50, dir: {x: -1, y: 0}, type: "enemy", brain: enemyBrain});
+const player = createUnit({id: 0, x: 100, y: 50, dir: {x: 1, y: 0}, type: "player", brain: playerBrain});
+const enemy = createUnit({id: 1, x: 300, y: 50, dir: {x: -1, y: 0}, type: "enemy", brain: enemyBrain});
 
 world.units.push(player);
 world.units.push(enemy);
@@ -32,9 +32,8 @@ world.units.push(enemy);
 
 // TODO: Add flashbang sfx
 // TODO: Add gunshot sfx
-// tODO: Make enemies not run towards you when shooting
-// TODO: Make enemies turn towards shooting
 // TODO: Add win check
+// TODO: Tune breach map for playability
 
 // TODO: Adjusting facing using right click
 // TODO: Pie slicing with shift right click
@@ -48,6 +47,9 @@ setupInput(canvas, world);
 // TODO: Raytracing door opening?
 // TODO: Add actual planning of some sort
 // TODO: Added shooting fx
+// TODO: Nighttime
+// TODO: Reconcile time systems (performance.now()) with pausing (implement ticks?)
+// TODO: Hostages
 
 function updateWorld(world, dt) {
     for (const unit of world.units) {
@@ -79,7 +81,7 @@ function drawWorld(ctx, world) {
         if (unit.type === "enemy") {
             const state = getFogState(unit, world.fog);
 
-            if (state === FOG.VISIBLE) {
+            if (true) {
                 drawUnit(ctx, unit);
             } else if (state === FOG.SEEN) {
                 // TODO: drawSilhouette(ctx, unit); // future

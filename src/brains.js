@@ -21,6 +21,7 @@ export function playerBrain(unit, world) {
     const target = findVisibleTarget(unit, world);
     if (!target) return;
 
+    faceTarget(unit, target.x, target.y);
     tryShoot(unit, target, world);
 }
 
@@ -36,15 +37,23 @@ export function enemyBrain(unit, world) {
     if (topEvent?.type === "vision") {
         unit.state = "chase";
         unit.lastSeen = {
+            id: topEvent.data.id,
             x: topEvent.data.x,
             y: topEvent.data.y
         };
     } else if (topEvent?.type === "noise" && unit.state !== "chase") {
         unit.state = "search";
         unit.lastSeen = {
+            id: topEvent.data.id,
             x: topEvent.data.x,
             y: topEvent.data.y
         };
+    }
+
+    const target = resolveTarget(unit, world);
+
+    if (unit.state === "chase" && !target) {
+        unit.state = "idle";
     }
 
     if (unit.state === "search" && !unit.lastSeen) {
@@ -89,14 +98,18 @@ function idleState(unit, world) {
     // optional wandering later
 }
 
+// TODO: Handle omniscient ai here
 function chaseState(unit, world) {
-    const target = unit.lastSeen;
+    const target = resolveTarget(unit, world);
     if (!target) return;
 
     const visibleTarget = findVisibleTarget(unit, world);
 
     if (visibleTarget) {
+        faceTarget(unit, target.x, target.y);
         tryShoot(unit, visibleTarget, world);
+
+        return;
     }
 
     const needsNewPath =
@@ -114,11 +127,12 @@ function chaseState(unit, world) {
 }
 
 function searchState(unit, world) {
-    const target = unit.lastSeen;
+    const target = resolveTarget(unit, world);
     if (!target) return;
 
     const visibleTarget = findVisibleTarget(unit, world);
     if (visibleTarget) {
+        faceTarget(unit, target.x, target.y);
         tryShoot(unit, visibleTarget, world);
     }
 
@@ -190,4 +204,30 @@ function hearNoise(unit, world) {
 
     return best;
 }
+
+function resolveTarget(unit, world) {
+    if (unit.lastSeen?.id === undefined || unit.lastSeen?.id === null) return null;
+
+    const target = world.units.find(u => u.id === unit.lastSeen.id);
+
+    if (!target || !target.alive) {
+        unit.lastSeen = null;
+        return null;
+    }
+
+    return target;
+}
+
+// TODO: Implement human like smooth turning
+export function faceTarget(unit, x, y) {
+    const dx = x - unit.x;
+    const dy = y - unit.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist === 0) return;
+
+    unit.dir.x = dx / dist;
+    unit.dir.y = dy / dist;
+}
+
 // tODO: Add friendly brains?
