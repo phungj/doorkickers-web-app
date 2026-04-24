@@ -53,12 +53,12 @@ export function createUnit({id,
         y,
         dir: finalDir,
         size: 15,
-        visionRange: 100,
+        visionRange: 200,
         speed: 2,
         hp: MAX_HP,
         weapon: {
             cooldown: 0,
-            fireRate: 3
+            fireRate: 5
         },
         alive: true,
         rawPath: [],
@@ -339,7 +339,7 @@ function inBounds(fog, x, y) {
 }
 
 export function getNearbyInteractables(player, world) {
-    const range = TILE_SIZE;
+    const range = TILE_SIZE * 1.5;
 
     const results = [];
 

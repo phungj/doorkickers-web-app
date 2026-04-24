@@ -52,8 +52,6 @@ export function tryShoot(unit, target, world) {
 
     unit.weapon.cooldown = now + (1000 / unit.weapon.fireRate);
 
-    console.log(`${unit.type} shoots ${target.type}\n${unit.type}:${unit.hp}\n${target.type}:${target.hp}`)
-
     return true;
 }
 

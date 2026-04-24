@@ -6,6 +6,7 @@ export function setupInput(canvas, world) {
     let selectedUnit = null;
     let dragging = false;
 
+    // TODO: Implement flashbang canceling
     canvas.addEventListener("mousedown", (e) => {
         if (e.button !== 0) return;
 

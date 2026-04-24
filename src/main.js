@@ -25,22 +25,23 @@ const world = {
 
 const player = createUnit({id: 0, x: 100, y: 50, dir: {x: 1, y: 0}, type: "player", brain: playerBrain});
 const enemy = createUnit({id: 1, x: 300, y: 50, dir: {x: -1, y: 0}, type: "enemy", brain: enemyBrain});
+const enemy2 = createUnit({id: 2, x: 300, y: 90, dir: {x: -1, y: 0}, type: "enemy", brain: enemyBrain});
+const enemy3 = createUnit({id: 3, x: 300, y: 130, dir: {x: -1, y: 0}, type: "enemy", brain: enemyBrain});
 
 world.units.push(player);
 world.units.push(enemy);
-
+world.units.push(enemy2);
+world.units.push(enemy3);
 
 // TODO: Add flashbang sfx
 // TODO: Add gunshot sfx
-// TODO: Add win check
-// TODO: Tune breach map for playability
-
-// TODO: Adjusting facing using right click
-// TODO: Pie slicing with shift right click
-// TODO: Strafing with control right click
 
 setupInput(canvas, world);
 
+// TODO: Handle wall clipping issues
+// TODO: Adjusting facing using right click
+// TODO: Pie slicing with shift right click
+// TODO: Strafing with control right click
 // TODO: Implement ability to breach and clear a door with a flashbang
 // TODO: Debug flashbang throwing when paused
 // TODO: Edge of fog interactions like enemy silhouettes
@@ -81,7 +82,7 @@ function drawWorld(ctx, world) {
         if (unit.type === "enemy") {
             const state = getFogState(unit, world.fog);
 
-            if (true) {
+            if (state === FOG.VISIBLE) {
                 drawUnit(ctx, unit);
             } else if (state === FOG.SEEN) {
                 // TODO: drawSilhouette(ctx, unit); // future
@@ -220,8 +221,17 @@ function drawFlashbang(ctx, fb) {
     ctx.fill();
 }
 
+function checkWin() {
+    return !world.units.some(u => u.type === "enemy" && u.alive);
+}
+
+function checkLose() {
+    return !world.units.some(u => u.type === "player" && u.alive);
+}
+
 let lastTime = performance.now();
 
+// TODO: Handle winning more gracefully
 function loop() {
     const now = performance.now();
     const dt = (now - lastTime) / 1000; // seconds
@@ -233,6 +243,21 @@ function loop() {
     }
 
     drawWorld(ctx, world);
+
+    if (checkWin()) {
+        requestAnimationFrame(() => {
+            alert("You win! :D");
+        });
+        return;
+    }
+
+    if (checkLose()) {
+        requestAnimationFrame(() => {
+            alert("You lose :(");
+        });
+        return;
+    }
+
     requestAnimationFrame(loop);
 }
 
