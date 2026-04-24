@@ -5,6 +5,7 @@ import {setupInput} from "./input.js";
 import {createFog, drawFog, FOG, getFogState} from "./fog.js";
 import {enemyBrain, playerBrain} from "./brains.js";
 import {FLASHBANG_DURATION, FLASHBANG_RADIUS, updateFlashbangs} from "./systems/throwables.js";
+import {playFlashbang} from "./audio.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -32,9 +33,6 @@ world.units.push(player);
 world.units.push(enemy);
 world.units.push(enemy2);
 world.units.push(enemy3);
-
-// TODO: Add flashbang sfx
-// TODO: Add gunshot sfx
 
 setupInput(canvas, world);
 
@@ -176,6 +174,7 @@ function resolvePendingActions(world) {
         switch (action.type) {
             case "flashbang":
                 throwFlashbang(world, action.origin, action.target);
+                playFlashbang();
                 break;
         }
 

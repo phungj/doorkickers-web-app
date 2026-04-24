@@ -1,7 +1,10 @@
 import {getTileWorld, isBlockingTile} from "../map.js";
+import {playGunshot} from "../audio.js";
 
 // TODO: Add noise to this
 function fireShot(world, shooter, targetX, targetY) {
+    playGunshot();
+
     const dx = targetX - shooter.x;
     const dy = targetY - shooter.y;
 
